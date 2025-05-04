@@ -179,14 +179,14 @@ export const forgotPassword = async (req, res) => {
     }
 
     const resetToken = crypto.randomBytes(20).toString('hex');
-    const resetPasswordExpiredAt = Date.now() + 1000 * 60 * 60;
+    const resetPasswordExpiredAt = Date.now() + 1 * 60 * 60 * 1000; // 1 hour
 
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpiredAt = resetPasswordExpiredAt;
 
     await user.save();
 
-    const resetUrl = `http://localhost:5000/api/auth/password-reset/${resetToken}`;
+    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
 
     sendPasswordResetEmail(user.email, resetUrl);
 
@@ -205,7 +205,7 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const resetPassword = async (req, res) => {
-  const {id} = req.params;
+  const token = req.params.token;
   const {newpassword, renewpassword} = req.body;
   try {
     if(newpassword !== renewpassword) {
@@ -215,8 +215,10 @@ export const resetPassword = async (req, res) => {
       })
     }
 
+    console.log(token);
+
     const user = await User.findOne({
-      resetPasswordToken: id,
+      resetPasswordToken: token,
       resetPasswordExpiredAt: { $gt: Date.now() }
     })
 
@@ -236,7 +238,10 @@ export const resetPassword = async (req, res) => {
 
     sendPasswordResetSuccessEmail(user.email);
 
-    res.send("Page");
+    res.status(200).json({
+      success: true,
+      message: "Password reset successful",
+    });
 
   } catch (error) {
     console.log("Error in Reset Password", error);
